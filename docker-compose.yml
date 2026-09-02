@@ -1,0 +1,37 @@
+# Quick local run without Kubernetes.
+#   docker compose up --build
+#   curl localhost:8080/health
+
+services:
+  redis:
+    build: ./redis
+    image: ahceneaiti/redis:1.0
+    command: ["redis-server", "/usr/local/etc/redis/redis.conf", "--requirepass", "devpass"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "devpass", "--no-auth-warning", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build: ./api
+    image: ahceneaiti/api-rest:1.0
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: "0"
+      APP_SECRET: dev-secret-change-me
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: devpass
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+volumes:
+  redis-data:

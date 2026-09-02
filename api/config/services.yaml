@@ -1,0 +1,23 @@
+parameters:
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/Kernel.php'
+            - '../src/Model/'
+
+    # Controllers as services so scalar/Request arguments get resolved.
+    App\Controller\:
+        resource: '../src/Controller/'
+        tags: ['controller.service_arguments']
+
+    App\Redis\RedisFactory:
+        arguments:
+            $host: '%env(REDIS_HOST)%'
+            $port: '%env(int:REDIS_PORT)%'
+            $password: '%env(REDIS_PASSWORD)%'

@@ -1,0 +1,6 @@
+/api/vendor/
+/api/var/
+/api/composer.lock
+/api/.env.local
+/api/.env.*.local
+.DS_Store

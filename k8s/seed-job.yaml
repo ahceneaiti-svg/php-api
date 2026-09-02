@@ -1,0 +1,57 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: user-seed
+  namespace: user-api
+  labels:
+    app: user-seed
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app: user-seed
+    spec:
+      restartPolicy: OnFailure
+      initContainers:
+        - name: wait-for-redis
+          image: ahceneaiti/redis:1.0
+          imagePullPolicy: IfNotPresent
+          command:
+            - sh
+            - -c
+            - 'until redis-cli -h "$REDIS_HOST" -p "$REDIS_PORT" -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG; do echo "waiting for redis..."; sleep 2; done'
+          env:
+            - name: REDIS_HOST
+              value: redis
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth
+                  key: REDIS_PASSWORD
+      containers:
+        - name: seed
+          image: ahceneaiti/api-rest:1.0
+          imagePullPolicy: IfNotPresent
+          command: ["php", "bin/console", "app:users:seed", "--count=50"]
+          envFrom:
+            - configMapRef:
+                name: api-config
+            - secretRef:
+                name: api-secret
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth
+                  key: REDIS_PASSWORD
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
